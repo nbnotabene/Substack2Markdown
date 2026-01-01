@@ -17,6 +17,7 @@ from xml.etree import ElementTree as ET
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from webdriver_manager.microsoft import EdgeChromiumDriverManager
+from selenium.webdriver.chrome.options import Options as ChromeOptions
 from selenium.webdriver.edge.options import Options as EdgeOptions
 from selenium.common.exceptions import SessionNotCreatedException
 from selenium.webdriver.chrome.service import Service
@@ -30,9 +31,7 @@ BASE_SUBSTACK_URL: str = (
     "https://nielsbjerre.substack.com/"  # Substack you want to convert to markdown
 )
 BASE_MD_DIR: str = "outmd"  # Name of the directory we'll save the .md essay files
-BASE_HTML_DIR: str = (
-    "outhtml"  # Name of the directory we'll save the .html essay files
-)
+BASE_HTML_DIR: str = "outhtml"  # Name of the directory we'll save the .html essay files
 HTML_TEMPLATE: str = "author_template.html"  # HTML template to use for the author page
 JSON_DATA_DIR: str = "data"
 NUM_POSTS_TO_SCRAPE: int = 0  # Set to 0 if you want all posts
