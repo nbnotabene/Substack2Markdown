@@ -23,18 +23,28 @@ from selenium.webdriver.chrome.service import Service
 from urllib.parse import urlparse
 from config import EMAIL, PASSWORD
 
-USE_PREMIUM: bool = True  # Set to True if you want to login to Substack and convert paid for posts
-BASE_SUBSTACK_URL: str = "https://www.thefitzwilliam.com/"  # Substack you want to convert to markdown
-BASE_MD_DIR: str = "substack_md_files"  # Name of the directory we'll save the .md essay files
-BASE_HTML_DIR: str = "substack_html_pages"  # Name of the directory we'll save the .html essay files
+USE_PREMIUM: bool = (
+    False  # Set to True if you want to login to Substack and convert paid for posts
+)
+BASE_SUBSTACK_URL: str = (
+    "https://nielsbjerre.substack.com/"  # Substack you want to convert to markdown
+)
+BASE_MD_DIR: str = "outmd"  # Name of the directory we'll save the .md essay files
+BASE_HTML_DIR: str = (
+    "outhtml"  # Name of the directory we'll save the .html essay files
+)
 HTML_TEMPLATE: str = "author_template.html"  # HTML template to use for the author page
 JSON_DATA_DIR: str = "data"
-NUM_POSTS_TO_SCRAPE: int = 3  # Set to 0 if you want all posts
+NUM_POSTS_TO_SCRAPE: int = 0  # Set to 0 if you want all posts
 
 
 def extract_main_part(url: str) -> str:
-    parts = urlparse(url).netloc.split('.')  # Parse the URL to get the netloc, and split on '.'
-    return parts[1] if parts[0] == 'www' else parts[0]  # Return the main part of the domain, while ignoring 'www' if
+    parts = urlparse(url).netloc.split(
+        "."
+    )  # Parse the URL to get the netloc, and split on '.'
+    return (
+        parts[1] if parts[0] == "www" else parts[0]
+    )  # Return the main part of the domain, while ignoring 'www' if
     # present
 
 
@@ -46,26 +56,26 @@ def generate_html_file(author_name: str) -> None:
         os.makedirs(BASE_HTML_DIR)
 
     # Read JSON data
-    json_path = os.path.join(JSON_DATA_DIR, f'{author_name}.json')
-    with open(json_path, 'r', encoding='utf-8') as file:
+    json_path = os.path.join(JSON_DATA_DIR, f"{author_name}.json")
+    with open(json_path, "r", encoding="utf-8") as file:
         essays_data = json.load(file)
 
     # Convert JSON data to a JSON string for embedding
     embedded_json_data = json.dumps(essays_data, ensure_ascii=False, indent=4)
 
-    with open(HTML_TEMPLATE, 'r', encoding='utf-8') as file:
+    with open(HTML_TEMPLATE, "r", encoding="utf-8") as file:
         html_template = file.read()
 
     # Insert the JSON string into the script tag in the HTML template
-    html_with_data = html_template.replace('<!-- AUTHOR_NAME -->', author_name).replace(
+    html_with_data = html_template.replace("<!-- AUTHOR_NAME -->", author_name).replace(
         '<script type="application/json" id="essaysData"></script>',
-        f'<script type="application/json" id="essaysData">{embedded_json_data}</script>'
+        f'<script type="application/json" id="essaysData">{embedded_json_data}</script>',
     )
-    html_with_author = html_with_data.replace('author_name', author_name)
+    html_with_author = html_with_data.replace("author_name", author_name)
 
     # Write the modified HTML to a new file
-    html_output_path = os.path.join(BASE_HTML_DIR, f'{author_name}.html')
-    with open(html_output_path, 'w', encoding='utf-8') as file:
+    html_output_path = os.path.join(BASE_HTML_DIR, f"{author_name}.html")
+    with open(html_output_path, "w", encoding="utf-8") as file:
         file.write(html_with_author)
 
 
@@ -108,29 +118,34 @@ class BaseSubstackScraper(ABC):
         response = requests.get(sitemap_url)
 
         if not response.ok:
-            print(f'Error fetching sitemap at {sitemap_url}: {response.status_code}')
+            print(f"Error fetching sitemap at {sitemap_url}: {response.status_code}")
             return []
 
         root = ET.fromstring(response.content)
-        urls = [element.text for element in root.iter('{http://www.sitemaps.org/schemas/sitemap/0.9}loc')]
+        urls = [
+            element.text
+            for element in root.iter("{http://www.sitemaps.org/schemas/sitemap/0.9}loc")
+        ]
         return urls
 
     def fetch_urls_from_feed(self) -> List[str]:
         """
         Fetches URLs from feed.xml.
         """
-        print('Falling back to feed.xml. This will only contain up to the 22 most recent posts.')
+        print(
+            "Falling back to feed.xml. This will only contain up to the 22 most recent posts."
+        )
         feed_url = f"{self.base_substack_url}feed.xml"
         response = requests.get(feed_url)
 
         if not response.ok:
-            print(f'Error fetching feed at {feed_url}: {response.status_code}')
+            print(f"Error fetching feed at {feed_url}: {response.status_code}")
             return []
 
         root = ET.fromstring(response.content)
         urls = []
-        for item in root.findall('.//item'):
-            link = item.find('link')
+        for item in root.findall(".//item"):
+            link = item.find("link")
             if link is not None and link.text:
                 urls.append(link.text)
 
@@ -170,7 +185,7 @@ class BaseSubstackScraper(ABC):
             print(f"File already exists: {filepath}")
             return
 
-        with open(filepath, 'w', encoding='utf-8') as file:
+        with open(filepath, "w", encoding="utf-8") as file:
             file.write(content)
 
     @staticmethod
@@ -178,8 +193,7 @@ class BaseSubstackScraper(ABC):
         """
         This method converts Markdown to HTML
         """
-        return markdown.markdown(md_content, extensions=['extra'])
-
+        return markdown.markdown(md_content, extensions=["extra"])
 
     def save_to_html_file(self, filepath: str, content: str) -> None:
         """
@@ -213,7 +227,7 @@ class BaseSubstackScraper(ABC):
             </html>
         """
 
-        with open(filepath, 'w', encoding='utf-8') as file:
+        with open(filepath, "w", encoding="utf-8") as file:
             file.write(html_content)
 
     @staticmethod
@@ -233,7 +247,9 @@ class BaseSubstackScraper(ABC):
         return url.split("/")[-1] + filetype
 
     @staticmethod
-    def combine_metadata_and_content(title: str, subtitle: str, date: str, like_count: str, content) -> str:
+    def combine_metadata_and_content(
+        title: str, subtitle: str, date: str, like_count: str, content
+    ) -> str:
         """
         Combines the title, subtitle, and content into a single string with Markdown format
         """
@@ -247,7 +263,7 @@ class BaseSubstackScraper(ABC):
         if subtitle:
             metadata += f"## {subtitle}\n\n"
         metadata += f"**{date}**\n\n"
-        metadata += f"**Likes:** {like_count}\n\n"
+        # metadata += f"**Likes:** {like_count}\n\n"
 
         return metadata + content
 
@@ -266,7 +282,9 @@ class BaseSubstackScraper(ABC):
 
         # Date — try CSS selector first
         date = ""
-        date_element = soup.select_one("div.pencraft.pc-reset.color-pub-secondary-text-hGQ02T")
+        date_element = soup.select_one(
+            "div.pencraft.pc-reset.color-pub-secondary-text-hGQ02T"
+        )
         if date_element and date_element.text.strip():
             date = date_element.text.strip()
 
@@ -278,7 +296,9 @@ class BaseSubstackScraper(ABC):
                     metadata = json.loads(script_tag.string)
                     if "datePublished" in metadata:
                         date_str = metadata["datePublished"]
-                        date_obj = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
+                        date_obj = datetime.fromisoformat(
+                            date_str.replace("Z", "+00:00")
+                        )
                         date = date_obj.strftime("%b %d, %Y")
                 except (json.JSONDecodeError, ValueError, KeyError):
                     pass
@@ -300,10 +320,11 @@ class BaseSubstackScraper(ABC):
         md = self.html_to_md(content_html)
 
         # Combine metadata + content
-        md_content = self.combine_metadata_and_content(title, subtitle, date, like_count, md)
+        md_content = self.combine_metadata_and_content(
+            title, subtitle, date, like_count, md
+        )
 
         return title, subtitle, like_count, date, md_content
-
 
     @abstractmethod
     def get_url_soup(self, url: str) -> str:
@@ -317,12 +338,14 @@ class BaseSubstackScraper(ABC):
         if not os.path.exists(data_dir):
             os.makedirs(data_dir)
 
-        json_path = os.path.join(data_dir, f'{self.writer_name}.json')
+        json_path = os.path.join(data_dir, f"{self.writer_name}.json")
         if os.path.exists(json_path):
-            with open(json_path, 'r', encoding='utf-8') as file:
+            with open(json_path, "r", encoding="utf-8") as file:
                 existing_data = json.load(file)
-            essays_data = existing_data + [data for data in essays_data if data not in existing_data]
-        with open(json_path, 'w', encoding='utf-8') as f:
+            essays_data = existing_data + [
+                data for data in essays_data if data not in existing_data
+            ]
+        with open(json_path, "w", encoding="utf-8") as f:
             json.dump(essays_data, f, ensure_ascii=False, indent=4)
 
     def scrape_posts(self, num_posts_to_scrape: int = 0) -> None:
@@ -351,14 +374,16 @@ class BaseSubstackScraper(ABC):
                     html_content = self.md_to_html(md)
                     self.save_to_html_file(html_filepath, html_content)
 
-                    essays_data.append({
-                        "title": title,
-                        "subtitle": subtitle,
-                        "like_count": like_count,
-                        "date": date,
-                        "file_link": md_filepath,
-                        "html_link": html_filepath
-                    })
+                    essays_data.append(
+                        {
+                            "title": title,
+                            "subtitle": subtitle,
+                            # "like_count": like_count,
+                            "date": date,
+                            "file_link": md_filepath,
+                            "html_link": html_filepath,
+                        }
+                    )
                 else:
                     print(f"File already exists: {md_filepath}")
             except Exception as e:
@@ -396,9 +421,9 @@ class PremiumSubstackScraper(BaseSubstackScraper):
         md_save_dir: str,
         html_save_dir: str,
         headless: bool = False,
-        edge_path: str = '',
-        edge_driver_path: str = '',
-        user_agent: str = ''
+        edge_path: str = "",
+        edge_driver_path: str = "",
+        user_agent: str = "",
     ) -> None:
         super().__init__(base_substack_url, md_save_dir, html_save_dir)
 
@@ -410,13 +435,16 @@ class PremiumSubstackScraper(BaseSubstackScraper):
             options.binary_location = edge_path
         if user_agent:
             options.add_argument(f"user-agent={user_agent}")
-    
-        if isinstance(options, EdgeOptions):
-            os.environ.setdefault("SE_DRIVER_MIRROR_URL", "https://msedgedriver.microsoft.com")
-        elif isinstance(options, ChromeOptions):
-            os.environ.setdefault("SE_DRIVER_MIRROR_URL", "https://chromedriver.storage.googleapis.com")
 
-        
+        if isinstance(options, EdgeOptions):
+            os.environ.setdefault(
+                "SE_DRIVER_MIRROR_URL", "https://msedgedriver.microsoft.com"
+            )
+        elif isinstance(options, ChromeOptions):
+            os.environ.setdefault(
+                "SE_DRIVER_MIRROR_URL", "https://chromedriver.storage.googleapis.com"
+            )
+
         self.driver = None
 
         # 1) Prefer an explicit driver path (manual download)
@@ -428,8 +456,10 @@ class PremiumSubstackScraper(BaseSubstackScraper):
             try:
                 service = Service(EdgeChromiumDriverManager().install())
                 self.driver = webdriver.Edge(service=service, options=options)
-            except Exception as e:
-                print("webdriver_manager could not download msedgedriver (network/DNS). Falling back to Selenium Manager.")
+            except Exception:
+                print(
+                    "webdriver_manager could not download msedgedriver (network/DNS). Falling back to Selenium Manager."
+                )
                 # 3) Selenium Manager fallback (still needs network; but avoids webdriver_manager)
                 try:
                     # IMPORTANT: ensure no stale driver in PATH (e.g. C:\Windows\msedgedriver.exe v138)
@@ -463,7 +493,9 @@ class PremiumSubstackScraper(BaseSubstackScraper):
         password.send_keys(PASSWORD)
 
         # Find the submit button and click it.
-        submit = self.driver.find_element(By.XPATH, "//*[@id=\"substack-login\"]/div[2]/div[2]/form/button")
+        submit = self.driver.find_element(
+            By.XPATH, '//*[@id="substack-login"]/div[2]/div[2]/form/button'
+        )
         submit.click()
         sleep(30)  # Wait for the page to load
 
@@ -478,7 +510,7 @@ class PremiumSubstackScraper(BaseSubstackScraper):
         """
         Check for the presence of the 'error-container' to indicate a failed login attempt.
         """
-        error_container = self.driver.find_elements(By.ID, 'error-container')
+        error_container = self.driver.find_elements(By.ID, "error-container")
         return len(error_container) > 0 and error_container[0].is_displayed()
 
     def get_url_soup(self, url: str) -> BeautifulSoup:
@@ -562,13 +594,11 @@ def main():
                 args.url,
                 headless=args.headless,
                 md_save_dir=args.directory,
-                html_save_dir=args.html_directory
+                html_save_dir=args.html_directory,
             )
         else:
             scraper = SubstackScraper(
-                args.url,
-                md_save_dir=args.directory,
-                html_save_dir=args.html_directory
+                args.url, md_save_dir=args.directory, html_save_dir=args.html_directory
             )
         scraper.scrape_posts(args.number)
 
@@ -579,13 +609,13 @@ def main():
                 md_save_dir=args.directory,
                 html_save_dir=args.html_directory,
                 edge_path=args.edge_path,
-                edge_driver_path=args.edge_driver_path
+                edge_driver_path=args.edge_driver_path,
             )
         else:
             scraper = SubstackScraper(
                 base_substack_url=BASE_SUBSTACK_URL,
                 md_save_dir=args.directory,
-                html_save_dir=args.html_directory
+                html_save_dir=args.html_directory,
             )
         scraper.scrape_posts(num_posts_to_scrape=NUM_POSTS_TO_SCRAPE)
 
